@@ -14,13 +14,6 @@ jobs:
       - name: Checkout files
         uses: actions/checkout@v4
 
-      - name: Show project files
-        run: |
-          echo "ROOT FILES:"
-          ls -la
-          echo "ALL FILES:"
-          find . -maxdepth 3 -type f
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -34,34 +27,30 @@ jobs:
 
       - name: Prepare www folder
         run: |
-          rm -rf www temp_app
+          rm -rf www temp_app android
           mkdir -p www temp_app
 
           ZIP_FILE=$(find . -maxdepth 1 -type f \( -iname "*.zip" -o -iname "*.ZIP" \) | head -n 1)
 
-          if [ -n "$ZIP_FILE" ]; then
-            echo "ZIP FOUND: $ZIP_FILE"
-            unzip -o "$ZIP_FILE" -d temp_app
-          else
-            echo "NO ZIP FOUND"
+          if [ -z "$ZIP_FILE" ]; then
+            echo "ERROR: ZIP file not found!"
             exit 1
           fi
 
-          echo "SEARCHING index.html..."
+          echo "ZIP FOUND: $ZIP_FILE"
+          unzip -o "$ZIP_FILE" -d temp_app
+
           INDEX_PATH=$(find temp_app -iname "index.html" | head -n 1)
 
           if [ -z "$INDEX_PATH" ]; then
             echo "ERROR: index.html not found!"
-            find temp_app -maxdepth 5 -type f
             exit 1
           fi
 
           APP_DIR=$(dirname "$INDEX_PATH")
-          echo "APP DIR: $APP_DIR"
-
           cp -r "$APP_DIR"/* www/
 
-          echo "WWW RESULT:"
+          echo "WWW READY:"
           ls -la www
 
       - name: Install dependencies
@@ -82,16 +71,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: eBuy-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-      - name: Sync
-        run: npx cap sync android
-
-      - name: Build APK
-        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: eBuy-apk
+          name: eBuy-apk-${{ github.run_number }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
